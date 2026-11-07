@@ -1,0 +1,37 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Arrange files
+        run: |
+          mkdir -p lib/models lib/db lib/state lib/l10n lib/services lib/screens assets/fonts
+          mv main.dart lib/
+          mv models.dart lib/models/
+          mv database.dart lib/db/
+          mv app_state.dart lib/state/
+          mv strings.dart lib/l10n/
+          mv invoice_pdf.dart lib/services/
+          mv *_screen.dart home_shell.dart lib/screens/
+          touch assets/fonts/.gitkeep
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter create . --platforms=android --project-name dz_cashier
+      - run: sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dz-cashier-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
